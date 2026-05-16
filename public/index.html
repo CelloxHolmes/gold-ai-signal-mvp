@@ -41,6 +41,7 @@
             <h2 class="panel-title">Realtime Candlestick Forecast</h2>
             <div class="market-meta">
               <span class="badge" id="lastPrice">Price: -</span>
+              <span class="badge" id="ohlcBadge">O: - H: - L: - C: -</span>
               <span class="badge" id="timeframeBadge">TF: -</span>
               <span class="badge" id="marketState">Market: -</span>
               <span class="badge" id="updatedAt">Updated: -</span>
@@ -48,6 +49,7 @@
           </div>
           <div class="chart-wrap">
             <canvas id="priceChart" aria-label="Gold price chart"></canvas>
+            <div id="chartTooltip" class="chart-tooltip" hidden></div>
           </div>
           <div class="legend">
             <span class="legend-item"><span class="dot" style="background: #42d392"></span>Bull candle</span>

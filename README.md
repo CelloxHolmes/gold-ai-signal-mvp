@@ -21,6 +21,7 @@ http://127.0.0.1:5177
 - Streams updates to the browser with Server-Sent Events every 10 seconds.
 - Calculates EMA 20, EMA 50, RSI, volatility, signal confidence, entry, TP, and SL.
 - Draws candlestick chart and strategy diagram on canvas.
+- Shows a TradingView-style crosshair, OHLC hover readout, tooltip, and current price line.
 - Keeps a live signal log for recent updates.
 
 ## Notes

@@ -1,5 +1,6 @@
 const chartCanvas = document.getElementById("priceChart");
 const chartCtx = chartCanvas.getContext("2d");
+const chartTooltip = document.getElementById("chartTooltip");
 const diagramCanvas = document.getElementById("strategyCanvas");
 const diagramCtx = diagramCanvas.getContext("2d");
 const MAX_LOG_ROWS = 8;
@@ -14,6 +15,8 @@ const state = {
   eventSource: null,
   live: true,
   log: [],
+  hover: null,
+  chartModel: null,
 };
 
 function resizeCanvas(canvas, cssHeight) {
@@ -140,13 +143,31 @@ function drawChart() {
   const candleW = Math.max(4, candleGap * 0.58);
   const y = (price) => pad.top + ((max - price) / (max - min)) * plotH;
   const x = (index) => pad.left + index * candleGap;
+  state.chartModel = {
+    w,
+    h,
+    pad,
+    min,
+    max,
+    plotW,
+    plotH,
+    candleGap,
+    candleW,
+    visibleCandles,
+    ema20,
+    ema50,
+    x,
+    y,
+  };
 
   drawGrid(w, h, pad, min, max, y);
   visibleCandles.forEach((candle, index) => drawCandle(candle, x(index), y, candleW));
   drawLine(ema20, x, y, "#f4c44f", 2);
   drawLine(ema50, x, y, "#6aa7ff", 2);
+  drawCurrentPriceLine(y, visibleCandles[visibleCandles.length - 1].close);
   drawForecast(x, y, visibleCandles.length - 1);
   drawSignalMarker(x, y, visibleCandles.length - 1, visibleCandles[visibleCandles.length - 1].close);
+  drawCrosshair();
 }
 
 function drawGrid(w, h, pad, min, max, y) {
@@ -166,6 +187,29 @@ function drawGrid(w, h, pad, min, max, y) {
     chartCtx.stroke();
     chartCtx.fillText(price.toFixed(1), pad.left - 8, yy);
   }
+}
+
+function drawCurrentPriceLine(y, price) {
+  const model = state.chartModel;
+  const yy = y(price);
+  chartCtx.strokeStyle = "rgba(255, 74, 104, 0.72)";
+  chartCtx.setLineDash([2, 4]);
+  chartCtx.lineWidth = 1;
+  chartCtx.beginPath();
+  chartCtx.moveTo(model.pad.left, yy);
+  chartCtx.lineTo(model.w - model.pad.right, yy);
+  chartCtx.stroke();
+  chartCtx.setLineDash([]);
+
+  const label = fmt(price);
+  chartCtx.font = "bold 12px Segoe UI";
+  const labelW = chartCtx.measureText(label).width + 14;
+  chartCtx.fillStyle = "#ff4a68";
+  chartCtx.fillRect(model.w - model.pad.right + 6, yy - 10, labelW, 20);
+  chartCtx.fillStyle = "#ffffff";
+  chartCtx.textAlign = "left";
+  chartCtx.textBaseline = "middle";
+  chartCtx.fillText(label, model.w - model.pad.right + 13, yy);
 }
 
 function drawCandle(candle, cx, y, candleW) {
@@ -221,6 +265,50 @@ function drawSignalMarker(x, y, index, price) {
   chartCtx.textAlign = "center";
   chartCtx.textBaseline = "middle";
   chartCtx.fillText(state.analysis.signal[0], x(index), y(price));
+}
+
+function drawCrosshair() {
+  const model = state.chartModel;
+  if (!model || !state.hover) return;
+  const { mouseX, mouseY, candleIndex, price } = state.hover;
+  const candle = model.visibleCandles[candleIndex];
+  if (!candle) return;
+  const crossX = model.x(candleIndex);
+
+  chartCtx.save();
+  chartCtx.strokeStyle = "rgba(220, 226, 236, 0.68)";
+  chartCtx.lineWidth = 1;
+  chartCtx.setLineDash([5, 5]);
+  chartCtx.beginPath();
+  chartCtx.moveTo(crossX, model.pad.top);
+  chartCtx.lineTo(crossX, model.h - model.pad.bottom);
+  chartCtx.moveTo(model.pad.left, mouseY);
+  chartCtx.lineTo(model.w - model.pad.right, mouseY);
+  chartCtx.stroke();
+  chartCtx.setLineDash([]);
+
+  const priceLabel = fmt(price);
+  chartCtx.font = "bold 12px Segoe UI";
+  const priceLabelW = chartCtx.measureText(priceLabel).width + 14;
+  chartCtx.fillStyle = "#303744";
+  chartCtx.fillRect(model.w - model.pad.right + 6, mouseY - 10, priceLabelW, 20);
+  chartCtx.fillStyle = "#e8edf5";
+  chartCtx.textAlign = "left";
+  chartCtx.textBaseline = "middle";
+  chartCtx.fillText(priceLabel, model.w - model.pad.right + 13, mouseY);
+
+  const timeLabel = formatCandleTime(candle.time);
+  const timeLabelW = chartCtx.measureText(timeLabel).width + 18;
+  chartCtx.fillStyle = "#303744";
+  chartCtx.fillRect(crossX - timeLabelW / 2, model.h - model.pad.bottom + 10, timeLabelW, 22);
+  chartCtx.fillStyle = "#e8edf5";
+  chartCtx.textAlign = "center";
+  chartCtx.fillText(timeLabel, crossX, model.h - model.pad.bottom + 21);
+
+  chartCtx.strokeStyle = "rgba(244, 196, 79, 0.9)";
+  chartCtx.lineWidth = 1.5;
+  chartCtx.strokeRect(mouseX - 5, mouseY - 5, 10, 10);
+  chartCtx.restore();
 }
 
 function drawDiagram() {
@@ -290,6 +378,7 @@ function drawCallout(x, y, title, text, color) {
 
 function updateUi() {
   const a = state.analysis;
+  const lastCandle = state.candles[state.candles.length - 1];
   const signalEl = document.getElementById("signal");
   signalEl.textContent = a.signal;
   signalEl.className = `signal ${a.signal.toLowerCase()}`;
@@ -304,6 +393,7 @@ function updateUi() {
   document.getElementById("riskScore").textContent = `${a.riskScore}/15`;
   document.getElementById("strategyName").textContent = a.strategy;
   document.getElementById("lastPrice").textContent = `Price: ${fmt(a.entry)} ${state.feed?.currency || "USD"}`;
+  document.getElementById("ohlcBadge").textContent = `O: ${fmt(lastCandle.open)} H: ${fmt(lastCandle.high)} L: ${fmt(lastCandle.low)} C: ${fmt(lastCandle.close)}`;
   document.getElementById("timeframeBadge").textContent = `TF: ${state.feed?.timeframe || "-"}`;
   document.getElementById("marketState").textContent = `Market: ${state.feed?.marketState || "-"}`;
   document.getElementById("updatedAt").textContent = `Updated: ${new Date(state.feed?.fetchedAt || Date.now()).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`;
@@ -407,6 +497,65 @@ function fmt(value) {
   return Number(value).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+function formatCandleTime(value) {
+  return new Date(value).toLocaleString("th-TH", {
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function priceFromY(mouseY) {
+  const model = state.chartModel;
+  return model.max - ((mouseY - model.pad.top) / model.plotH) * (model.max - model.min);
+}
+
+function updateHover(event) {
+  const model = state.chartModel;
+  if (!model) return;
+  const rect = chartCanvas.getBoundingClientRect();
+  const mouseX = event.clientX - rect.left;
+  const mouseY = event.clientY - rect.top;
+  const inPlot =
+    mouseX >= model.pad.left &&
+    mouseX <= model.w - model.pad.right &&
+    mouseY >= model.pad.top &&
+    mouseY <= model.h - model.pad.bottom;
+
+  if (!inPlot) {
+    clearHover();
+    return;
+  }
+
+  const candleIndex = clamp(Math.round((mouseX - model.pad.left) / model.candleGap), 0, model.visibleCandles.length - 1);
+  const candle = model.visibleCandles[candleIndex];
+  const price = priceFromY(mouseY);
+  state.hover = { mouseX, mouseY, candleIndex, price };
+  document.getElementById("ohlcBadge").textContent = `O: ${fmt(candle.open)} H: ${fmt(candle.high)} L: ${fmt(candle.low)} C: ${fmt(candle.close)}`;
+  chartTooltip.hidden = false;
+  chartTooltip.style.left = `${Math.min(mouseX, rect.width - 210)}px`;
+  chartTooltip.style.top = `${Math.min(mouseY, rect.height - 120)}px`;
+  chartTooltip.innerHTML = `
+    <strong>${formatCandleTime(candle.time)}</strong>
+    O ${fmt(candle.open)} &nbsp; H ${fmt(candle.high)}<br>
+    L ${fmt(candle.low)} &nbsp; C ${fmt(candle.close)}<br>
+    Pointer ${fmt(price)}
+  `;
+  drawChart();
+}
+
+function clearHover() {
+  if (!state.hover) return;
+  state.hover = null;
+  chartTooltip.hidden = true;
+  if (state.analysis) {
+    const lastCandle = state.candles[state.candles.length - 1];
+    document.getElementById("ohlcBadge").textContent = `O: ${fmt(lastCandle.open)} H: ${fmt(lastCandle.high)} L: ${fmt(lastCandle.low)} C: ${fmt(lastCandle.close)}`;
+  }
+  drawChart();
+}
+
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
@@ -416,6 +565,8 @@ document.getElementById("diagramBtn").addEventListener("click", drawDiagram);
 document.getElementById("liveBtn").addEventListener("click", toggleLive);
 document.getElementById("symbolSelect").addEventListener("change", startStream);
 document.getElementById("timeframeSelect").addEventListener("change", startStream);
+chartCanvas.addEventListener("mousemove", updateHover);
+chartCanvas.addEventListener("mouseleave", clearHover);
 window.addEventListener("resize", () => {
   drawChart();
   drawDiagram();
