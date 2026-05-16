@@ -26,6 +26,20 @@ http://127.0.0.1:5177
 - Adds a toggleable Trade Plan overlay for Entry, Take Profit, Stop Loss, and signal time.
 - Keeps a live signal log for recent updates.
 
+## Presentation video
+
+The demo presentation is available at:
+
+```text
+presentation/gold-ai-signal-demo.webm
+```
+
+The source presentation page is:
+
+```text
+presentation/gold-ai-signal-presentation.html
+```
+
 ## Notes
 
 The default symbol is `GC=F` for COMEX Gold Futures. This MVP is for education and prototyping only. Market data can be delayed, unavailable outside trading hours, or subject to provider changes. It is not investment advice.

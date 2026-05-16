@@ -1,0 +1,533 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Gold AI Signal MVP Presentation</title>
+    <style>
+      :root {
+        --bg: #080a0f;
+        --panel: #151820;
+        --panel-2: #1f2430;
+        --text: #f5f7fb;
+        --muted: #9ca7ba;
+        --gold: #f4c44f;
+        --green: #42d392;
+        --red: #ff6b6b;
+        --blue: #6aa7ff;
+        --violet: #b893ff;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        width: 100vw;
+        height: 100vh;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 20% 10%, rgba(244, 196, 79, 0.16), transparent 28rem),
+          radial-gradient(circle at 90% 40%, rgba(106, 167, 255, 0.14), transparent 26rem),
+          linear-gradient(135deg, #080a0f, #11141b 54%, #0d1115);
+        color: var(--text);
+        font-family: "Segoe UI", Tahoma, sans-serif;
+      }
+
+      .stage {
+        position: relative;
+        width: 1280px;
+        height: 720px;
+        transform-origin: top left;
+      }
+
+      .slide {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        grid-template-columns: 0.92fr 1.08fr;
+        gap: 36px;
+        padding: 52px 58px 42px;
+        opacity: 0;
+        transform: translateY(18px);
+        transition: opacity 600ms ease, transform 600ms ease;
+      }
+
+      .slide.active {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      .copy {
+        align-self: center;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        min-height: 32px;
+        padding: 0 12px;
+        border: 1px solid rgba(244, 196, 79, 0.45);
+        border-radius: 999px;
+        color: #ffe5a4;
+        background: rgba(244, 196, 79, 0.1);
+        font-size: 15px;
+        font-weight: 700;
+      }
+
+      h1 {
+        margin: 18px 0 18px;
+        font-size: 58px;
+        line-height: 1.04;
+        letter-spacing: 0;
+      }
+
+      h2 {
+        margin: 16px 0 18px;
+        font-size: 46px;
+        line-height: 1.08;
+        letter-spacing: 0;
+      }
+
+      p {
+        margin: 0;
+        color: #dbe2ee;
+        font-size: 23px;
+        line-height: 1.55;
+      }
+
+      .bullets {
+        display: grid;
+        gap: 14px;
+        margin-top: 22px;
+      }
+
+      .bullet {
+        display: grid;
+        grid-template-columns: 28px 1fr;
+        gap: 12px;
+        align-items: start;
+        color: #e9eef7;
+        font-size: 22px;
+        line-height: 1.4;
+      }
+
+      .check {
+        display: grid;
+        width: 28px;
+        height: 28px;
+        place-items: center;
+        border-radius: 50%;
+        background: rgba(66, 211, 146, 0.16);
+        color: var(--green);
+        font-weight: 900;
+      }
+
+      .mock {
+        align-self: center;
+        min-height: 520px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 12px;
+        background: rgba(18, 21, 29, 0.92);
+        box-shadow: 0 28px 90px rgba(0, 0, 0, 0.38);
+        overflow: hidden;
+      }
+
+      .mock-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 18px 20px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 20px;
+        font-weight: 800;
+      }
+
+      .logo {
+        display: grid;
+        width: 38px;
+        height: 38px;
+        place-items: center;
+        border: 1px solid rgba(244, 196, 79, 0.5);
+        border-radius: 8px;
+        color: var(--gold);
+        background: rgba(244, 196, 79, 0.12);
+      }
+
+      .chips {
+        display: flex;
+        gap: 8px;
+      }
+
+      .chip {
+        padding: 7px 10px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 999px;
+        color: var(--muted);
+        font-size: 13px;
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .mock-body {
+        display: grid;
+        grid-template-columns: 1fr 280px;
+        gap: 14px;
+        padding: 16px;
+      }
+
+      canvas {
+        display: block;
+        width: 100%;
+        height: 420px;
+        border-radius: 8px;
+        background: #0b0e14;
+      }
+
+      .signal {
+        display: grid;
+        gap: 12px;
+      }
+
+      .signal-card,
+      .metric {
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 8px;
+        background: var(--panel-2);
+        padding: 15px;
+      }
+
+      .signal-card small,
+      .metric small {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .signal-word {
+        margin-top: 4px;
+        color: var(--red);
+        font-size: 48px;
+        font-weight: 900;
+        line-height: 1;
+      }
+
+      .metric strong {
+        display: block;
+        margin-top: 5px;
+        font-size: 21px;
+      }
+
+      .score-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        margin-top: 20px;
+      }
+
+      .score {
+        min-height: 82px;
+        padding: 14px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 8px;
+        background: var(--panel);
+      }
+
+      .score div {
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .score strong {
+        display: block;
+        margin-top: 6px;
+        font-size: 26px;
+      }
+
+      .phone {
+        width: 310px;
+        min-height: 560px;
+        justify-self: center;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        border-radius: 28px;
+        background: #10131a;
+        padding: 20px;
+        box-shadow: 0 34px 90px rgba(0, 0, 0, 0.45);
+      }
+
+      .phone .signal-word {
+        font-size: 44px;
+      }
+
+      .progress {
+        position: absolute;
+        left: 58px;
+        right: 58px;
+        bottom: 26px;
+        height: 4px;
+        border-radius: 99px;
+        background: rgba(255, 255, 255, 0.12);
+        overflow: hidden;
+      }
+
+      .progress-bar {
+        height: 100%;
+        width: 0;
+        background: linear-gradient(90deg, var(--gold), var(--green), var(--blue));
+      }
+    </style>
+  </head>
+  <body>
+    <div class="stage" id="stage">
+      <section class="slide active" data-slide>
+        <div class="copy">
+          <div class="eyebrow">Gold AI Signal MVP</div>
+          <h1>ผู้ช่วยอ่านกราฟทองคำแบบ realtime</h1>
+          <p>รวมราคาจริง, AI Hybrid v2, จุดเข้า, TP, SL และแผนเทรดบนกราฟเดียว เพื่อให้ตัดสินใจเป็นระบบขึ้น</p>
+        </div>
+        <div class="mock">
+          <div class="mock-head">
+            <div class="brand"><span class="logo">AU</span>Realtime Candlestick</div>
+            <div class="chips"><span class="chip">GC=F</span><span class="chip">1h</span><span class="chip">Live</span></div>
+          </div>
+          <div class="mock-body">
+            <canvas id="chartOne" width="620" height="420"></canvas>
+            <div class="signal">
+              <div class="signal-card"><small>AI Signal</small><div class="signal-word">SELL</div><small>77% confidence</small></div>
+              <div class="metric"><small>Entry</small><strong>4,543.60</strong></div>
+              <div class="metric"><small>Take Profit</small><strong>4,473.62</strong></div>
+              <div class="metric"><small>Stop Loss</small><strong>4,575.41</strong></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-slide>
+        <div class="copy">
+          <div class="eyebrow">AI Hybrid v2</div>
+          <h2>ไม่ได้ดู indicator ตัวเดียว</h2>
+          <p>ระบบรวมเทรนด์, momentum, volatility และ regime ของตลาด เพื่อกรองจังหวะที่ไม่ควรเทรดออกก่อน</p>
+          <div class="bullets">
+            <div class="bullet"><span class="check">✓</span><span>EMA20 / EMA50 สำหรับทิศทางหลัก</span></div>
+            <div class="bullet"><span class="check">✓</span><span>RSI + MACD histogram สำหรับแรงส่ง</span></div>
+            <div class="bullet"><span class="check">✓</span><span>Bollinger squeeze / breakout สำหรับภาวะตลาด</span></div>
+            <div class="bullet"><span class="check">✓</span><span>ATR สำหรับ Stop Loss และ Take Profit</span></div>
+          </div>
+        </div>
+        <div class="mock">
+          <div class="mock-head"><div class="brand"><span class="logo">AI</span>Hybrid Score</div></div>
+          <div class="mock-body" style="display:block">
+            <div class="score-grid">
+              <div class="score"><div>Trend</div><strong>40/40</strong></div>
+              <div class="score"><div>Momentum</div><strong>11/25</strong></div>
+              <div class="score"><div>Risk</div><strong>15/15</strong></div>
+              <div class="score"><div>Regime</div><strong>16/20</strong></div>
+              <div class="score"><div>MACD</div><strong>6/20</strong></div>
+              <div class="score"><div>ATR / R:R</div><strong>21.20 / 2.2R</strong></div>
+            </div>
+            <p style="margin-top:24px;font-size:20px">ตัวอย่างนี้ SELL เพราะเทรนด์ลงชัด แต่ MACD ยังไม่สุด ระบบจึงให้ confidence แบบมีเหตุผล ไม่ใช่การเดา</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-slide>
+        <div class="copy">
+          <div class="eyebrow">Trade Plan Overlay</div>
+          <h2>เห็น Entry, TP, SL บนกราฟทันที</h2>
+          <p>เปิดฟิลเตอร์ Trade Plan แล้วระบบจะวาดเส้นแนะนำให้เห็นบนกราฟ พร้อมเวลาเกิดสัญญาณ</p>
+          <div class="bullets">
+            <div class="bullet"><span class="check">✓</span><span>เส้น Entry สีขาว</span></div>
+            <div class="bullet"><span class="check">✓</span><span>เส้น TP สีเขียว</span></div>
+            <div class="bullet"><span class="check">✓</span><span>เส้น SL สีแดง</span></div>
+          </div>
+        </div>
+        <div class="mock">
+          <div class="mock-head"><div class="brand"><span class="logo">TP</span>Plan on Chart</div><div class="chips"><span class="chip">Trade Plan ON</span></div></div>
+          <div class="mock-body" style="display:block">
+            <canvas id="chartTwo" width="720" height="450"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-slide>
+        <div class="copy">
+          <div class="eyebrow">TradingView feel</div>
+          <h2>อ่านกราฟเร็วขึ้น ด้วย crosshair และ tooltip</h2>
+          <p>เลื่อนเม้าส์บนกราฟเพื่อดูราคา เวลา OHLC และ MACD histogram ของแท่งนั้น เหมาะกับการรีวิวจังหวะเข้าออก</p>
+        </div>
+        <div class="mock">
+          <div class="mock-head"><div class="brand"><span class="logo">+</span>Crosshair</div><div class="chips"><span class="chip">OHLC</span><span class="chip">MACD</span></div></div>
+          <div class="mock-body" style="display:block">
+            <canvas id="chartThree" width="720" height="450"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-slide>
+        <div class="copy">
+          <div class="eyebrow">Workflow</div>
+          <h2>ใช้งานแบบเป็นขั้นตอน</h2>
+          <div class="bullets">
+            <div class="bullet"><span class="check">1</span><span>เลือกสินทรัพย์และ timeframe</span></div>
+            <div class="bullet"><span class="check">2</span><span>ดูว่า AI ให้ BUY, SELL หรือ WAIT</span></div>
+            <div class="bullet"><span class="check">3</span><span>เปิด Trade Plan เพื่อดู Entry / TP / SL บนกราฟ</span></div>
+            <div class="bullet"><span class="check">4</span><span>ใช้เป็นผู้ช่วยวิเคราะห์ ไม่ใช่การันตีกำไร</span></div>
+          </div>
+        </div>
+        <div class="phone">
+          <div class="signal-card"><small>AI Signal</small><div class="signal-word">WAIT</div><small>Squeeze / Wait</small></div>
+          <div class="score-grid" style="grid-template-columns:1fr;margin-top:14px">
+            <div class="score"><div>Reason</div><strong style="font-size:18px">ตลาดบีบตัว รอ breakout</strong></div>
+            <div class="score"><div>Risk</div><strong>ไม่ฝืนเข้า</strong></div>
+            <div class="score"><div>Next</div><strong>รอแท่งยืนยัน</strong></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-slide>
+        <div class="copy">
+          <div class="eyebrow">Gold AI Signal MVP</div>
+          <h2>ต่อยอดได้อีกเยอะ</h2>
+          <p>ขั้นถัดไปคือ backtest engine, news filter, alert, deploy server และเพิ่มโมเดลเรียนรู้จากข้อมูลจริงมากขึ้น</p>
+          <div class="bullets">
+            <div class="bullet"><span class="check">✓</span><span>Realtime chart</span></div>
+            <div class="bullet"><span class="check">✓</span><span>AI Hybrid v2</span></div>
+            <div class="bullet"><span class="check">✓</span><span>Trade Plan overlay</span></div>
+          </div>
+        </div>
+        <div class="mock">
+          <div class="mock-head"><div class="brand"><span class="logo">AU</span>Ready for demo</div></div>
+          <div class="mock-body" style="display:block;padding:42px">
+            <h2 style="margin-top:0">พร้อมนำเสนอ</h2>
+            <p>โปรแกรมนี้ช่วยให้การอ่านกราฟทองคำมีโครงสร้าง ชัดเจน และตรวจสอบเหตุผลของสัญญาณได้ง่ายขึ้น</p>
+            <p style="margin-top:28px;color:#9ca7ba;font-size:18px">For education and prototyping only. Not investment advice.</p>
+          </div>
+        </div>
+      </section>
+      <div class="progress"><div class="progress-bar" id="progressBar"></div></div>
+    </div>
+
+    <script>
+      const duration = 42000;
+      const slides = [...document.querySelectorAll("[data-slide]")];
+      const progressBar = document.getElementById("progressBar");
+
+      function scaleStage() {
+        const stage = document.getElementById("stage");
+        const scale = Math.min(window.innerWidth / 1280, window.innerHeight / 720);
+        stage.style.transform = `scale(${scale})`;
+      }
+
+      function drawDemoChart(canvas, options = {}) {
+        const ctx = canvas.getContext("2d");
+        const w = canvas.width;
+        const h = canvas.height;
+        ctx.clearRect(0, 0, w, h);
+        ctx.fillStyle = "#0b0e14";
+        ctx.fillRect(0, 0, w, h);
+        ctx.strokeStyle = "rgba(255,255,255,0.08)";
+        for (let i = 1; i < 6; i++) {
+          ctx.beginPath();
+          ctx.moveTo(44, (h / 6) * i);
+          ctx.lineTo(w - 40, (h / 6) * i);
+          ctx.stroke();
+        }
+        const candles = [];
+        let price = 4700;
+        for (let i = 0; i < 80; i++) {
+          const drift = i < 45 ? -2.2 : -4.8;
+          const open = price;
+          price += drift + Math.sin(i * 0.7) * 9 + Math.cos(i * 0.18) * 5;
+          const close = price;
+          const high = Math.max(open, close) + 8 + Math.sin(i) * 4;
+          const low = Math.min(open, close) - 8 - Math.cos(i) * 4;
+          candles.push({ open, close, high, low });
+        }
+        const min = Math.min(...candles.map((c) => c.low)) - 35;
+        const max = Math.max(...candles.map((c) => c.high)) + 35;
+        const y = (value) => 24 + ((max - value) / (max - min)) * (h - 70);
+        const x = (i) => 48 + i * ((w - 100) / candles.length);
+        candles.forEach((candle, index) => {
+          const color = candle.close >= candle.open ? "#10bfa1" : "#ff4a68";
+          const cx = x(index);
+          ctx.strokeStyle = color;
+          ctx.beginPath();
+          ctx.moveTo(cx, y(candle.high));
+          ctx.lineTo(cx, y(candle.low));
+          ctx.stroke();
+          ctx.fillStyle = color;
+          ctx.fillRect(cx - 3, y(Math.max(candle.open, candle.close)), 6, Math.max(2, y(Math.min(candle.open, candle.close)) - y(Math.max(candle.open, candle.close))));
+        });
+
+        if (options.plan) {
+          const levels = [
+            ["Entry 4,543.60", 4543.6, "#ffffff"],
+            ["TP 4,473.62", 4473.62, "#42d392"],
+            ["SL 4,575.41", 4575.41, "#ff6b6b"],
+          ];
+          levels.forEach(([label, value, color]) => {
+            const yy = y(value);
+            ctx.strokeStyle = color;
+            ctx.setLineDash([8, 6]);
+            ctx.beginPath();
+            ctx.moveTo(44, yy);
+            ctx.lineTo(w - 44, yy);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.fillStyle = color;
+            ctx.fillRect(w - 174, yy - 13, 130, 26);
+            ctx.fillStyle = color === "#ffffff" ? "#101114" : "#061015";
+            ctx.font = "bold 14px Segoe UI";
+            ctx.fillText(label, w - 166, yy + 5);
+          });
+        }
+
+        if (options.crosshair) {
+          ctx.strokeStyle = "rgba(230,236,246,0.68)";
+          ctx.setLineDash([5, 5]);
+          ctx.beginPath();
+          ctx.moveTo(w * 0.56, 20);
+          ctx.lineTo(w * 0.56, h - 34);
+          ctx.moveTo(44, h * 0.46);
+          ctx.lineTo(w - 44, h * 0.46);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.fillStyle = "rgba(18,20,25,0.95)";
+          ctx.strokeStyle = "rgba(244,196,79,0.42)";
+          ctx.fillRect(w * 0.56 + 16, h * 0.46 + 12, 170, 92);
+          ctx.strokeRect(w * 0.56 + 16, h * 0.46 + 12, 170, 92);
+          ctx.fillStyle = "#f4c44f";
+          ctx.font = "bold 14px Segoe UI";
+          ctx.fillText("16 May 13:00", w * 0.56 + 28, h * 0.46 + 36);
+          ctx.fillStyle = "#f2f4f8";
+          ctx.font = "13px Segoe UI";
+          ctx.fillText("O 4,560  H 4,575", w * 0.56 + 28, h * 0.46 + 58);
+          ctx.fillText("L 4,533  C 4,543", w * 0.56 + 28, h * 0.46 + 78);
+        }
+      }
+
+      function tick() {
+        const elapsed = performance.now() - start;
+        const index = Math.min(slides.length - 1, Math.floor((elapsed / duration) * slides.length));
+        slides.forEach((slide, i) => slide.classList.toggle("active", i === index));
+        progressBar.style.width = `${Math.min(100, (elapsed / duration) * 100)}%`;
+        if (elapsed < duration) requestAnimationFrame(tick);
+        else window.__presentationDone = true;
+      }
+
+      window.addEventListener("resize", scaleStage);
+      scaleStage();
+      drawDemoChart(document.getElementById("chartOne"));
+      drawDemoChart(document.getElementById("chartTwo"), { plan: true });
+      drawDemoChart(document.getElementById("chartThree"), { crosshair: true });
+      const start = performance.now();
+      requestAnimationFrame(tick);
+    </script>
+  </body>
+</html>
