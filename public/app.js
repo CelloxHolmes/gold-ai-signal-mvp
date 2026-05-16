@@ -9,6 +9,9 @@ const state = {
   candles: [],
   ema20: [],
   ema50: [],
+  atr: [],
+  macd: [],
+  bollinger: [],
   forecast: [],
   analysis: null,
   feed: null,
@@ -51,6 +54,52 @@ function rsi(values, period = 14) {
 
 function averageRange(candles) {
   return candles.reduce((sum, candle) => sum + (candle.high - candle.low), 0) / Math.max(1, candles.length);
+}
+
+function atr(candles, period = 14) {
+  const out = [];
+  let previousAtr = 0;
+  candles.forEach((candle, index) => {
+    const previousClose = index === 0 ? candle.close : candles[index - 1].close;
+    const trueRange = Math.max(
+      candle.high - candle.low,
+      Math.abs(candle.high - previousClose),
+      Math.abs(candle.low - previousClose),
+    );
+    if (index === 0) previousAtr = trueRange;
+    else if (index < period) previousAtr = (previousAtr * index + trueRange) / (index + 1);
+    else previousAtr = (previousAtr * (period - 1) + trueRange) / period;
+    out.push(previousAtr);
+  });
+  return out;
+}
+
+function macd(values, fastPeriod = 12, slowPeriod = 26, signalPeriod = 9) {
+  const fast = ema(values, fastPeriod);
+  const slow = ema(values, slowPeriod);
+  const line = fast.map((value, index) => value - slow[index]);
+  const signal = ema(line, signalPeriod);
+  return line.map((value, index) => ({
+    macd: value,
+    signal: signal[index],
+    hist: value - signal[index],
+  }));
+}
+
+function bollinger(values, period = 20, multiplier = 2) {
+  return values.map((value, index) => {
+    const start = Math.max(0, index - period + 1);
+    const window = values.slice(start, index + 1);
+    const mean = window.reduce((sum, item) => sum + item, 0) / window.length;
+    const variance = window.reduce((sum, item) => sum + (item - mean) ** 2, 0) / window.length;
+    const deviation = Math.sqrt(variance);
+    return {
+      middle: mean,
+      upper: mean + deviation * multiplier,
+      lower: mean - deviation * multiplier,
+      width: deviation * multiplier * 2,
+    };
+  });
 }
 
 function analyze() {
@@ -117,6 +166,114 @@ function buildReason(signal, rsiValue, trendGap, slope, volatility) {
   return `${actionText}: ${trendText}, ${momentumText}, slope ${slope.toFixed(2)} และ average range ${volatility.toFixed(2)} จุด`;
 }
 
+function analyzeHybrid() {
+  const closes = state.candles.map((candle) => candle.close);
+  state.ema20 = ema(closes, 20);
+  state.ema50 = ema(closes, 50);
+  state.atr = atr(state.candles, 14);
+  state.macd = macd(closes);
+  state.bollinger = bollinger(closes);
+
+  const last = state.candles[state.candles.length - 1];
+  const prev = state.candles[Math.max(0, state.candles.length - 9)];
+  const lastEma20 = state.ema20[state.ema20.length - 1];
+  const lastEma50 = state.ema50[state.ema50.length - 1];
+  const lastAtr = state.atr[state.atr.length - 1];
+  const recentAtr = state.atr.slice(-50);
+  const atrAverage = recentAtr.reduce((sum, value) => sum + value, 0) / Math.max(1, recentAtr.length);
+  const lastMacd = state.macd[state.macd.length - 1];
+  const previousMacd = state.macd[Math.max(0, state.macd.length - 2)];
+  const lastBand = state.bollinger[state.bollinger.length - 1];
+  const previousBand = state.bollinger[Math.max(0, state.bollinger.length - 2)];
+  const previousClose = closes[Math.max(0, closes.length - 2)];
+  const lastRsi = rsi(closes);
+  const slope = last.close - prev.close;
+  const volatility = lastAtr || averageRange(state.candles.slice(-18));
+  const trendGap = lastEma20 - lastEma50;
+  const trendScore = clamp(12 + (Math.abs(trendGap) / Math.max(0.01, volatility)) * 14 + (Math.abs(slope) / Math.max(0.01, volatility)) * 8, 0, 40);
+  const histSlope = lastMacd.hist - previousMacd.hist;
+  const bullishTrend = last.close > lastEma20 && lastEma20 > lastEma50;
+  const bearishTrend = last.close < lastEma20 && lastEma20 < lastEma50;
+  const bullishMomentum = clamp((lastRsi - 45) * 0.45 + (lastMacd.hist > 0 ? 8 : 0) + (histSlope > 0 ? 5 : 0), 0, 25);
+  const bearishMomentum = clamp((55 - lastRsi) * 0.45 + (lastMacd.hist < 0 ? 8 : 0) + (histSlope < 0 ? 5 : 0), 0, 25);
+  const momentumScore = Math.max(bullishMomentum, bearishMomentum);
+  const atrRatio = volatility / Math.max(0.01, atrAverage);
+  const riskScore = clamp(15 - Math.abs(Math.log(Math.max(0.2, atrRatio))) * 7, 0, 15);
+  const recentBands = state.bollinger.slice(-50);
+  const averageBandWidth = recentBands.reduce((sum, band) => sum + band.width, 0) / Math.max(1, recentBands.length);
+  const squeeze = lastBand.width < averageBandWidth * 0.72;
+  const breakoutUp = last.close > lastBand.upper && previousClose <= previousBand.upper && histSlope > 0;
+  const breakoutDown = last.close < lastBand.lower && previousClose >= previousBand.lower && histSlope < 0;
+  const trending = trendScore >= 23 && (bullishTrend || bearishTrend);
+  const regimeScore = breakoutUp || breakoutDown ? 20 : trending ? 16 : squeeze ? 5 : 10;
+  const macdScore = clamp((Math.abs(lastMacd.hist) / Math.max(0.01, volatility)) * 45 + (Math.abs(histSlope) / Math.max(0.01, volatility)) * 35, 0, 20);
+  const buyScore = (bullishTrend ? trendScore : trendGap > 0 ? trendScore * 0.45 : 0) + bullishMomentum + riskScore + regimeScore + (breakoutUp ? 12 : 0);
+  const sellScore = (bearishTrend ? trendScore : trendGap < 0 ? trendScore * 0.45 : 0) + bearishMomentum + riskScore + regimeScore + (breakoutDown ? 12 : 0);
+
+  let signal = "WAIT";
+  if (!squeeze || breakoutUp || breakoutDown) {
+    if (buyScore >= 68 && buyScore - sellScore >= 10) signal = "BUY";
+    if (sellScore >= 68 && sellScore - buyScore >= 10) signal = "SELL";
+  }
+
+  const rawConfidence = Math.max(buyScore, sellScore);
+  const confidence = signal === "WAIT" ? Math.round(clamp(50 + Math.abs(buyScore - sellScore) * 0.45, 50, 69)) : Math.round(clamp(rawConfidence, 62, 92));
+  const riskBuffer = Math.max(volatility * 1.5, Math.max(4, last.close * 0.0018));
+  const rewardMultiple = breakoutUp || breakoutDown ? 2.6 : trending ? 2.2 : 1.6;
+  const reward = riskBuffer * rewardMultiple;
+  const entry = last.close;
+  const takeProfit = signal === "SELL" ? entry - reward : entry + reward;
+  const stopLoss = signal === "SELL" ? entry + riskBuffer : entry - riskBuffer;
+  const regime = breakoutUp ? "Breakout Up" : breakoutDown ? "Breakout Down" : squeeze ? "Squeeze / Wait" : trending ? "Trend" : "Range";
+  const strategy = signal === "WAIT" ? (squeeze ? "Squeeze Wait" : "Hybrid Wait") : breakoutUp || breakoutDown ? "Breakout + ATR" : "Trend + ATR";
+
+  state.forecast = makeForecastHybrid(entry, signal, volatility, lastMacd.hist, regime);
+  state.analysis = {
+    signal,
+    confidence,
+    entry,
+    takeProfit,
+    stopLoss,
+    trendScore: Math.round(trendScore),
+    momentumScore: Math.round(momentumScore),
+    riskScore: Math.round(riskScore),
+    regimeScore: Math.round(regimeScore),
+    macdScore: Math.round(macdScore),
+    strategy,
+    regime,
+    rsi: lastRsi,
+    atr: volatility,
+    rr: reward / riskBuffer,
+    macdHist: lastMacd.hist,
+    macdSlope: histSlope,
+    buyScore,
+    sellScore,
+    volatility,
+    reason: buildHybridReason(signal, lastRsi, trendGap, slope, volatility, lastMacd.hist, histSlope, regime, buyScore, sellScore),
+  };
+}
+
+function makeForecastHybrid(entry, signal, volatility, macdHist, regime) {
+  const points = [];
+  const direction = signal === "SELL" ? -1 : signal === "BUY" ? 1 : 0.12;
+  const regimeMultiplier = regime.includes("Breakout") ? 0.28 : regime === "Trend" ? 0.2 : 0.08;
+  const momentumBias = clamp(macdHist / Math.max(0.01, volatility), -0.5, 0.5);
+  let value = entry;
+  for (let i = 1; i <= 12; i++) {
+    value += direction * volatility * regimeMultiplier + momentumBias * volatility * 0.04 + Math.sin(i / 2) * volatility * 0.05;
+    points.push(value);
+  }
+  return points;
+}
+
+function buildHybridReason(signal, rsiValue, trendGap, slope, volatility, macdHist, histSlope, regime, buyScore, sellScore) {
+  const trendText = trendGap > 0 ? "EMA20 > EMA50 ให้น้ำหนักฝั่งซื้อ" : "EMA20 < EMA50 ให้น้ำหนักฝั่งขาย";
+  const momentumText = macdHist > 0 && histSlope > 0 ? "MACD histogram เร่งขึ้น" : macdHist < 0 && histSlope < 0 ? "MACD histogram เร่งลง" : "MACD ยังไม่ยืนยันเต็มที่";
+  const rsiText = rsiValue > 62 ? "RSI แข็งแรงแต่ต้องระวังย่อ" : rsiValue < 38 ? "RSI อ่อนแรง/เสี่ยงกลับตัว" : "RSI กลางโซน";
+  const actionText = signal === "BUY" ? "AI Hybrid v2 ให้ BUY" : signal === "SELL" ? "AI Hybrid v2 ให้ SELL" : "AI Hybrid v2 ให้ WAIT เพื่อกรองสัญญาณหลอก";
+  return `${actionText}: regime=${regime}, ${trendText}, ${momentumText}, ${rsiText}, ATR ${volatility.toFixed(2)}, slope ${slope.toFixed(2)}, buyScore ${buyScore.toFixed(0)} / sellScore ${sellScore.toFixed(0)}`;
+}
+
 function drawChart() {
   if (!state.candles.length || !state.analysis) return;
   resizeCanvas(chartCanvas, chartCanvas.clientHeight || 470);
@@ -129,16 +286,24 @@ function drawChart() {
   const emaOffset = state.candles.length - visibleCandles.length;
   const ema20 = state.ema20.slice(emaOffset);
   const ema50 = state.ema50.slice(emaOffset);
+  const bollingerBands = state.bollinger.slice(emaOffset);
+  const visibleMacd = state.macd.slice(emaOffset);
   const allPrices = [
     ...visibleCandles.flatMap((candle) => [candle.high, candle.low]),
     ...ema20,
     ...ema50,
+    ...bollingerBands.flatMap((band) => [band.upper, band.lower]),
     ...state.forecast,
   ];
   const min = Math.min(...allPrices) - state.analysis.volatility;
   const max = Math.max(...allPrices) + state.analysis.volatility;
   const plotW = w - pad.left - pad.right;
-  const plotH = h - pad.top - pad.bottom;
+  const macdHeight = Math.max(82, h * 0.22);
+  const macdGap = 14;
+  const priceBottom = h - pad.bottom - macdHeight - macdGap;
+  const plotH = priceBottom - pad.top;
+  const macdTop = priceBottom + macdGap;
+  const macdBottom = h - pad.bottom;
   const candleGap = plotW / (visibleCandles.length + state.forecast.length + 3);
   const candleW = Math.max(4, candleGap * 0.58);
   const y = (price) => pad.top + ((max - price) / (max - min)) * plotH;
@@ -156,6 +321,11 @@ function drawChart() {
     visibleCandles,
     ema20,
     ema50,
+    bollingerBands,
+    visibleMacd,
+    priceBottom,
+    macdTop,
+    macdBottom,
     x,
     y,
   };
@@ -164,9 +334,12 @@ function drawChart() {
   visibleCandles.forEach((candle, index) => drawCandle(candle, x(index), y, candleW));
   drawLine(ema20, x, y, "#f4c44f", 2);
   drawLine(ema50, x, y, "#6aa7ff", 2);
+  drawDashedLine(bollingerBands.map((band) => band.upper), x, y, "rgba(184,147,255,0.42)", 1.2, [4, 5]);
+  drawDashedLine(bollingerBands.map((band) => band.lower), x, y, "rgba(184,147,255,0.42)", 1.2, [4, 5]);
   drawCurrentPriceLine(y, visibleCandles[visibleCandles.length - 1].close);
   drawForecast(x, y, visibleCandles.length - 1);
   drawSignalMarker(x, y, visibleCandles.length - 1, visibleCandles[visibleCandles.length - 1].close);
+  drawMacdPanel();
   drawCrosshair();
 }
 
@@ -237,6 +410,56 @@ function drawLine(values, x, y, color, width) {
   chartCtx.stroke();
 }
 
+function drawDashedLine(values, x, y, color, width, dash) {
+  chartCtx.save();
+  chartCtx.strokeStyle = color;
+  chartCtx.lineWidth = width;
+  chartCtx.setLineDash(dash);
+  chartCtx.beginPath();
+  values.forEach((value, index) => {
+    if (index === 0) chartCtx.moveTo(x(index), y(value));
+    else chartCtx.lineTo(x(index), y(value));
+  });
+  chartCtx.stroke();
+  chartCtx.restore();
+}
+
+function drawMacdPanel() {
+  const model = state.chartModel;
+  const values = model.visibleMacd;
+  if (!values.length) return;
+  const maxAbs = Math.max(0.01, ...values.flatMap((item) => [Math.abs(item.macd), Math.abs(item.signal), Math.abs(item.hist)]));
+  const center = (model.macdTop + model.macdBottom) / 2;
+  const halfHeight = (model.macdBottom - model.macdTop) / 2 - 8;
+  const yMacd = (value) => center - (value / maxAbs) * halfHeight;
+
+  chartCtx.save();
+  chartCtx.strokeStyle = "rgba(255,255,255,0.12)";
+  chartCtx.beginPath();
+  chartCtx.moveTo(model.pad.left, model.macdTop);
+  chartCtx.lineTo(model.w - model.pad.right, model.macdTop);
+  chartCtx.moveTo(model.pad.left, center);
+  chartCtx.lineTo(model.w - model.pad.right, center);
+  chartCtx.stroke();
+
+  values.forEach((item, index) => {
+    const xValue = model.x(index);
+    const yValue = yMacd(item.hist);
+    chartCtx.fillStyle = item.hist >= 0 ? "rgba(66,211,146,0.72)" : "rgba(255,176,32,0.78)";
+    chartCtx.fillRect(xValue - model.candleW / 2, Math.min(center, yValue), model.candleW, Math.max(1, Math.abs(center - yValue)));
+  });
+
+  drawLine(values.map((item) => item.macd), model.x, yMacd, "#ff9f1a", 1.6);
+  drawLine(values.map((item) => item.signal), model.x, yMacd, "#ff4a68", 1.4);
+
+  chartCtx.fillStyle = "#9ba3b2";
+  chartCtx.font = "12px Segoe UI";
+  chartCtx.textAlign = "left";
+  chartCtx.textBaseline = "top";
+  chartCtx.fillText("MACD 12 26 9", model.pad.left, model.macdTop + 6);
+  chartCtx.restore();
+}
+
 function drawForecast(x, y, start) {
   const last = state.candles[state.candles.length - 1].close;
   chartCtx.strokeStyle = "#b893ff";
@@ -281,7 +504,7 @@ function drawCrosshair() {
   chartCtx.setLineDash([5, 5]);
   chartCtx.beginPath();
   chartCtx.moveTo(crossX, model.pad.top);
-  chartCtx.lineTo(crossX, model.h - model.pad.bottom);
+  chartCtx.lineTo(crossX, model.macdBottom);
   chartCtx.moveTo(model.pad.left, mouseY);
   chartCtx.lineTo(model.w - model.pad.right, mouseY);
   chartCtx.stroke();
@@ -355,8 +578,8 @@ function drawDiagram() {
   diagramCtx.textBaseline = "middle";
   diagramCtx.fillText(state.analysis.signal, lastX, lastY);
   drawCallout(30, 22, "Trend", `EMA ${state.analysis.trendScore}/40`, "#6aa7ff");
-  drawCallout(w * 0.42, h - 66, "Momentum", `RSI ${state.analysis.rsi.toFixed(0)}`, "#b893ff");
-  drawCallout(w - 190, 22, "Risk Plan", `SL ${fmt(state.analysis.stopLoss)}`, color);
+  drawCallout(w * 0.42, h - 66, "Momentum", `RSI ${state.analysis.rsi.toFixed(0)} / MACD ${state.analysis.macdScore}/20`, "#b893ff");
+  drawCallout(w - 190, 22, state.analysis.regime, `ATR ${fmt(state.analysis.atr)} / ${state.analysis.rr.toFixed(1)}R`, color);
 }
 
 function drawCallout(x, y, title, text, color) {
@@ -391,6 +614,9 @@ function updateUi() {
   document.getElementById("trendScore").textContent = `${a.trendScore}/40`;
   document.getElementById("momentumScore").textContent = `${a.momentumScore}/25`;
   document.getElementById("riskScore").textContent = `${a.riskScore}/15`;
+  document.getElementById("regimeScore").textContent = `${a.regimeScore}/20`;
+  document.getElementById("macdScore").textContent = `${a.macdScore}/20`;
+  document.getElementById("atrScore").textContent = `${fmt(a.atr)} / ${a.rr.toFixed(1)}R`;
   document.getElementById("strategyName").textContent = a.strategy;
   document.getElementById("lastPrice").textContent = `Price: ${fmt(a.entry)} ${state.feed?.currency || "USD"}`;
   document.getElementById("ohlcBadge").textContent = `O: ${fmt(lastCandle.open)} H: ${fmt(lastCandle.high)} L: ${fmt(lastCandle.low)} C: ${fmt(lastCandle.close)}`;
@@ -437,7 +663,7 @@ function drawHistory() {
 function applyFeed(feed, note = "Live update") {
   state.feed = feed;
   state.candles = feed.candles;
-  analyze();
+  analyzeHybrid();
   pushLog(note);
   updateUi();
   drawChart();
@@ -521,7 +747,7 @@ function updateHover(event) {
     mouseX >= model.pad.left &&
     mouseX <= model.w - model.pad.right &&
     mouseY >= model.pad.top &&
-    mouseY <= model.h - model.pad.bottom;
+    mouseY <= model.priceBottom;
 
   if (!inPlot) {
     clearHover();
@@ -530,6 +756,7 @@ function updateHover(event) {
 
   const candleIndex = clamp(Math.round((mouseX - model.pad.left) / model.candleGap), 0, model.visibleCandles.length - 1);
   const candle = model.visibleCandles[candleIndex];
+  const macdPoint = model.visibleMacd[candleIndex];
   const price = priceFromY(mouseY);
   state.hover = { mouseX, mouseY, candleIndex, price };
   document.getElementById("ohlcBadge").textContent = `O: ${fmt(candle.open)} H: ${fmt(candle.high)} L: ${fmt(candle.low)} C: ${fmt(candle.close)}`;
@@ -540,6 +767,7 @@ function updateHover(event) {
     <strong>${formatCandleTime(candle.time)}</strong>
     O ${fmt(candle.open)} &nbsp; H ${fmt(candle.high)}<br>
     L ${fmt(candle.low)} &nbsp; C ${fmt(candle.close)}<br>
+    MACD ${macdPoint ? macdPoint.hist.toFixed(3) : "-"}<br>
     Pointer ${fmt(price)}
   `;
   drawChart();

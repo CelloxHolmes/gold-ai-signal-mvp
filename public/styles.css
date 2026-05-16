@@ -191,7 +191,7 @@ canvas {
 }
 
 #priceChart {
-  height: 470px;
+  height: 540px;
   cursor: crosshair;
 }
 
@@ -459,7 +459,7 @@ tr:last-child td {
   }
 
   #priceChart {
-    height: 380px;
+    height: 440px;
   }
 
   .table-scroll {

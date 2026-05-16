@@ -56,6 +56,8 @@
             <span class="legend-item"><span class="dot" style="background: #ff6b6b"></span>Bear candle</span>
             <span class="legend-item"><span class="dot" style="background: #f4c44f"></span>EMA 20</span>
             <span class="legend-item"><span class="dot" style="background: #6aa7ff"></span>EMA 50</span>
+            <span class="legend-item"><span class="dot" style="background: #b893ff"></span>Bollinger Bands</span>
+            <span class="legend-item"><span class="dot" style="background: #ff9f1a"></span>MACD panel</span>
             <span class="legend-item"><span class="dot" style="background: #b893ff"></span>AI forecast</span>
           </div>
         </article>
@@ -83,11 +85,14 @@
           </article>
 
           <article class="panel strategy">
-            <h2 class="panel-title">Strategy Score</h2>
+            <h2 class="panel-title">AI Hybrid v2 Score</h2>
             <div class="strategy-grid">
               <div class="score"><div>Trend</div><strong id="trendScore">-</strong></div>
               <div class="score"><div>Momentum</div><strong id="momentumScore">-</strong></div>
               <div class="score"><div>Risk</div><strong id="riskScore">-</strong></div>
+              <div class="score"><div>Regime</div><strong id="regimeScore">-</strong></div>
+              <div class="score"><div>MACD</div><strong id="macdScore">-</strong></div>
+              <div class="score"><div>ATR / R:R</div><strong id="atrScore">-</strong></div>
               <div class="score"><div>Strategy</div><strong id="strategyName">-</strong></div>
             </div>
           </article>
@@ -98,7 +103,7 @@
             <h2 class="panel-title">AI Strategy Diagram</h2>
             <div class="market-meta">
               <span class="badge" id="feedStatus">Connecting...</span>
-              <span class="badge">EMA + RSI + Volatility</span>
+              <span class="badge">EMA + MACD + ATR + Breakout</span>
             </div>
           </div>
           <div class="diagram-body">
