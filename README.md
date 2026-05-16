@@ -23,6 +23,7 @@ http://127.0.0.1:5177
 - Calculates signal confidence, entry, ATR-based TP/SL, risk/reward, and separate buy/sell scores.
 - Draws candlestick chart, Bollinger Bands, MACD panel, and strategy diagram on canvas.
 - Shows a TradingView-style crosshair, OHLC hover readout, tooltip, and current price line.
+- Adds a toggleable Trade Plan overlay for Entry, Take Profit, Stop Loss, and signal time.
 - Keeps a live signal log for recent updates.
 
 ## Notes

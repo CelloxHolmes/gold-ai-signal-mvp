@@ -17,6 +17,7 @@ const state = {
   feed: null,
   eventSource: null,
   live: true,
+  showTradePlan: true,
   log: [],
   hover: null,
   chartModel: null,
@@ -293,6 +294,9 @@ function drawChart() {
     ...ema20,
     ...ema50,
     ...bollingerBands.flatMap((band) => [band.upper, band.lower]),
+    state.analysis.entry,
+    state.analysis.takeProfit,
+    state.analysis.stopLoss,
     ...state.forecast,
   ];
   const min = Math.min(...allPrices) - state.analysis.volatility;
@@ -337,6 +341,7 @@ function drawChart() {
   drawDashedLine(bollingerBands.map((band) => band.upper), x, y, "rgba(184,147,255,0.42)", 1.2, [4, 5]);
   drawDashedLine(bollingerBands.map((band) => band.lower), x, y, "rgba(184,147,255,0.42)", 1.2, [4, 5]);
   drawCurrentPriceLine(y, visibleCandles[visibleCandles.length - 1].close);
+  drawTradePlanOverlay();
   drawForecast(x, y, visibleCandles.length - 1);
   drawSignalMarker(x, y, visibleCandles.length - 1, visibleCandles[visibleCandles.length - 1].close);
   drawMacdPanel();
@@ -383,6 +388,62 @@ function drawCurrentPriceLine(y, price) {
   chartCtx.textAlign = "left";
   chartCtx.textBaseline = "middle";
   chartCtx.fillText(label, model.w - model.pad.right + 13, yy);
+}
+
+function drawTradePlanOverlay() {
+  if (!state.showTradePlan || !state.analysis || state.analysis.signal === "WAIT") return;
+  const model = state.chartModel;
+  const levels = [
+    { key: "Entry", value: state.analysis.entry, color: "#ffffff", dash: [8, 6] },
+    { key: "TP", value: state.analysis.takeProfit, color: "#42d392", dash: [10, 5] },
+    { key: "SL", value: state.analysis.stopLoss, color: "#ff6b6b", dash: [10, 5] },
+  ];
+  const signalIndex = model.visibleCandles.length - 1;
+  const signalX = model.x(signalIndex);
+
+  chartCtx.save();
+  levels.forEach((level) => {
+    const yy = model.y(level.value);
+    chartCtx.strokeStyle = level.color;
+    chartCtx.lineWidth = level.key === "Entry" ? 1.5 : 1.3;
+    chartCtx.setLineDash(level.dash);
+    chartCtx.beginPath();
+    chartCtx.moveTo(model.pad.left, yy);
+    chartCtx.lineTo(model.w - model.pad.right, yy);
+    chartCtx.stroke();
+    chartCtx.setLineDash([]);
+
+    const label = `${level.key} ${fmt(level.value)}`;
+    chartCtx.font = "bold 12px Segoe UI";
+    const labelW = chartCtx.measureText(label).width + 16;
+    chartCtx.fillStyle = level.color;
+    chartCtx.globalAlpha = 0.95;
+    chartCtx.fillRect(model.w - model.pad.right - labelW - 8, yy - 11, labelW, 22);
+    chartCtx.globalAlpha = 1;
+    chartCtx.fillStyle = level.key === "Entry" ? "#101114" : "#081014";
+    chartCtx.textAlign = "left";
+    chartCtx.textBaseline = "middle";
+    chartCtx.fillText(label, model.w - model.pad.right - labelW, yy);
+  });
+
+  chartCtx.strokeStyle = "rgba(255,255,255,0.5)";
+  chartCtx.setLineDash([4, 5]);
+  chartCtx.beginPath();
+  chartCtx.moveTo(signalX, model.pad.top);
+  chartCtx.lineTo(signalX, model.priceBottom);
+  chartCtx.stroke();
+  chartCtx.setLineDash([]);
+
+  const timeLabel = `Signal ${formatCandleTime(model.visibleCandles[signalIndex].time)}`;
+  chartCtx.font = "bold 12px Segoe UI";
+  const timeW = chartCtx.measureText(timeLabel).width + 18;
+  chartCtx.fillStyle = "rgba(32,35,43,0.96)";
+  chartCtx.fillRect(Math.max(model.pad.left, signalX - timeW / 2), model.pad.top + 8, timeW, 24);
+  chartCtx.fillStyle = "#f2f4f8";
+  chartCtx.textAlign = "center";
+  chartCtx.textBaseline = "middle";
+  chartCtx.fillText(timeLabel, Math.max(model.pad.left + timeW / 2, signalX), model.pad.top + 20);
+  chartCtx.restore();
 }
 
 function drawCandle(candle, cx, y, candleW) {
@@ -715,6 +776,14 @@ function toggleLive() {
   }
 }
 
+function toggleTradePlan() {
+  state.showTradePlan = !state.showTradePlan;
+  const button = document.getElementById("tradePlanBtn");
+  button.classList.toggle("is-on", state.showTradePlan);
+  button.textContent = state.showTradePlan ? "▤ Trade Plan" : "▢ Trade Plan";
+  drawChart();
+}
+
 function setFeedStatus(text) {
   document.getElementById("feedStatus").textContent = text;
 }
@@ -791,6 +860,7 @@ function clamp(value, min, max) {
 document.getElementById("refreshBtn").addEventListener("click", () => refreshOnce().catch((error) => setFeedStatus(error.message)));
 document.getElementById("diagramBtn").addEventListener("click", drawDiagram);
 document.getElementById("liveBtn").addEventListener("click", toggleLive);
+document.getElementById("tradePlanBtn").addEventListener("click", toggleTradePlan);
 document.getElementById("symbolSelect").addEventListener("change", startStream);
 document.getElementById("timeframeSelect").addEventListener("change", startStream);
 chartCanvas.addEventListener("mousemove", updateHover);

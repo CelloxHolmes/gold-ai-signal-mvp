@@ -131,6 +131,12 @@ h1 {
   background: rgba(66, 211, 146, 0.12);
 }
 
+.btn.is-on {
+  color: #ffffff;
+  border-color: rgba(106, 167, 255, 0.75);
+  background: rgba(106, 167, 255, 0.14);
+}
+
 .grid {
   display: grid;
   grid-template-columns: minmax(0, 1.55fr) minmax(330px, 0.8fr);
