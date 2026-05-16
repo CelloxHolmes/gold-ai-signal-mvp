@@ -1,0 +1,26 @@
+ชื่อเพจ: Gold Oracle
+
+หมวดหมู่: Software / Financial service / Investing service
+
+คำอธิบายเพจ:
+Gold Oracle คือผู้ช่วยวิเคราะห์กราฟทองคำด้วย AI สำหรับ XAU/USD และ Gold Futures ใช้แนวคิด GPT-assisted intelligence ร่วมกับ AI Hybrid v2 เพื่อช่วยสรุปสัญญาณ BUY / SELL / WAIT พร้อม Entry, Take Profit, Stop Loss, MACD, Bollinger Bands, ATR และ Trade Plan Overlay บนกราฟ
+
+โพสต์เปิดตัว:
+เปิดตัว Gold Oracle
+ผู้ช่วยวิเคราะห์กราฟทองคำด้วย AI สำหรับคนที่อยากอ่านตลาดอย่างเป็นระบบขึ้น
+
+ฟีเจอร์หลัก:
+- วิเคราะห์กราฟทองคำแบบ realtime-ish
+- AI Hybrid v2 ช่วยประเมิน BUY / SELL / WAIT
+- วาด Entry, Take Profit, Stop Loss บนกราฟ
+- มี MACD, Bollinger Bands, ATR และ crosshair แบบ TradingView
+- อธิบายเหตุผลของสัญญาณเป็นภาษาคน
+
+เหมาะสำหรับ:
+- คนเทรดทอง XAU/USD
+- คนที่อยากมี AI ช่วยอ่านกราฟ
+- คนที่ต้องการเห็นแผนเทรดก่อนตัดสินใจ
+
+สนใจทดลองหรือดูเดโม ทักแชทได้เลย
+
+หมายเหตุ: เครื่องมือนี้เป็นผู้ช่วยวิเคราะห์เพื่อการศึกษาและการตัดสินใจอย่างมีระบบ ไม่ใช่คำแนะนำการลงทุน ไม่รับประกันผลกำไร และไม่ได้เป็นผลิตภัณฑ์อย่างเป็นทางการของ OpenAI หรือ ChatGPT

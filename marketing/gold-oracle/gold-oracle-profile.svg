@@ -1,0 +1,27 @@
+
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="goldGlow" cx="36%" cy="24%" r="70%">
+      <stop offset="0%" stop-color="#ffe6a3"/>
+      <stop offset="42%" stop-color="#f4c44f"/>
+      <stop offset="100%" stop-color="#5d3b0f"/>
+    </radialGradient>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#090b10"/>
+      <stop offset="55%" stop-color="#151923"/>
+      <stop offset="100%" stop-color="#080a0f"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="28" stdDeviation="30" flood-color="#000000" flood-opacity="0.46"/>
+    </filter>
+  </defs>
+  <rect width="1024" height="1024" rx="220" fill="url(#bg)"/>
+  <circle cx="512" cy="512" r="340" fill="none" stroke="rgba(244,196,79,0.28)" stroke-width="2"/>
+  <circle cx="512" cy="512" r="274" fill="rgba(244,196,79,0.08)" stroke="rgba(244,196,79,0.34)" stroke-width="5"/>
+  <path d="M512 230 L668 320 L668 704 L512 794 L356 704 L356 320 Z" fill="rgba(20,24,32,0.92)" stroke="#f4c44f" stroke-width="10" filter="url(#shadow)"/>
+  <path d="M512 316 C598 316 668 386 668 472 C668 588 512 714 512 714 C512 714 356 588 356 472 C356 386 426 316 512 316 Z" fill="url(#goldGlow)"/>
+  <circle cx="512" cy="474" r="74" fill="#11151d"/>
+  <circle cx="512" cy="474" r="38" fill="#f4c44f"/>
+  <path d="M398 642 C466 604 558 604 626 642" fill="none" stroke="#11151d" stroke-width="26" stroke-linecap="round"/>
+  <text x="512" y="900" text-anchor="middle" fill="#f7f0dd" font-family="Segoe UI, Arial, sans-serif" font-size="72" font-weight="900" letter-spacing="0">Gold Oracle</text>
+</svg>

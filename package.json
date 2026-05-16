@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
+    "brand:gold-oracle": "node scripts/generate-gold-oracle-assets.js",
     "record:presentation": "node scripts/record-presentation.js"
   },
   "keywords": [

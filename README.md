@@ -41,6 +41,16 @@ The source presentation page is:
 presentation/gold-ai-signal-presentation.html
 ```
 
+## Gold Oracle Facebook assets
+
+Ready-to-upload Facebook brand assets are in:
+
+```text
+marketing/gold-oracle/
+```
+
+Includes profile image, cover image, demo video, and launch copy.
+
 ## Notes
 
 The default symbol is `GC=F` for COMEX Gold Futures. This MVP is for education and prototyping only. Market data can be delayed, unavailable outside trading hours, or subject to provider changes. It is not investment advice.
