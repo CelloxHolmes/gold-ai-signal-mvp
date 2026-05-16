@@ -28,9 +28,10 @@ http://127.0.0.1:5177
 
 ## Presentation video
 
-The demo presentation is available at:
+The demo presentation is available as MP4 and WebM:
 
 ```text
+presentation/gold-ai-signal-demo.mp4
 presentation/gold-ai-signal-demo.webm
 ```
 
