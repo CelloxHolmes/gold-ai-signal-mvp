@@ -1,0 +1,19 @@
+{
+  "name": "gold-ai-signal-mvp",
+  "version": "0.2.0",
+  "description": "Realtime-ish gold price AI signal dashboard MVP.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "gold",
+    "trading",
+    "xauusd",
+    "ai-signal",
+    "realtime"
+  ],
+  "author": "",
+  "license": "MIT"
+}
