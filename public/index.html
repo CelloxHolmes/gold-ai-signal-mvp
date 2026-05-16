@@ -21,6 +21,14 @@
             <option value="GC=F">Gold Futures GC=F</option>
             <option value="SI=F">Silver Futures SI=F</option>
           </select>
+          <select id="timeframeSelect" class="select" aria-label="เลือก timeframe">
+            <option value="1m">1m</option>
+            <option value="5m">5m</option>
+            <option value="15m">15m</option>
+            <option value="30m">30m</option>
+            <option value="1h">1h</option>
+            <option value="1d">1D</option>
+          </select>
           <button id="liveBtn" class="btn primary is-live" type="button" title="เปิดหรือปิด realtime stream">● Live</button>
           <button id="refreshBtn" class="btn" type="button" title="ดึงข้อมูลราคาล่าสุด">↻ Refresh</button>
           <button id="diagramBtn" class="btn" type="button" title="วาดภาพอธิบายกลยุทธ์">▧ Strategy</button>
@@ -33,6 +41,7 @@
             <h2 class="panel-title">Realtime Candlestick Forecast</h2>
             <div class="market-meta">
               <span class="badge" id="lastPrice">Price: -</span>
+              <span class="badge" id="timeframeBadge">TF: -</span>
               <span class="badge" id="marketState">Market: -</span>
               <span class="badge" id="updatedAt">Updated: -</span>
             </div>

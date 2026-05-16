@@ -304,6 +304,7 @@ function updateUi() {
   document.getElementById("riskScore").textContent = `${a.riskScore}/15`;
   document.getElementById("strategyName").textContent = a.strategy;
   document.getElementById("lastPrice").textContent = `Price: ${fmt(a.entry)} ${state.feed?.currency || "USD"}`;
+  document.getElementById("timeframeBadge").textContent = `TF: ${state.feed?.timeframe || "-"}`;
   document.getElementById("marketState").textContent = `Market: ${state.feed?.marketState || "-"}`;
   document.getElementById("updatedAt").textContent = `Updated: ${new Date(state.feed?.fetchedAt || Date.now()).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`;
   document.getElementById("sourceName").textContent = `Source: ${state.feed?.source || "-"}`;
@@ -351,13 +352,14 @@ function applyFeed(feed, note = "Live update") {
   updateUi();
   drawChart();
   drawDiagram();
-  setFeedStatus(`Live ${feed.symbol} | ${feed.exchange}`);
+  setFeedStatus(`Live ${feed.symbol} | ${feed.timeframeLabel || feed.timeframe} | ${feed.exchange}`);
 }
 
 async function refreshOnce() {
   const symbol = document.getElementById("symbolSelect").value;
+  const timeframe = document.getElementById("timeframeSelect").value;
   setFeedStatus("Fetching latest price...");
-  const response = await fetch(`/api/gold?symbol=${encodeURIComponent(symbol)}`, { cache: "no-store" });
+  const response = await fetch(`/api/gold?symbol=${encodeURIComponent(symbol)}&timeframe=${encodeURIComponent(timeframe)}`, { cache: "no-store" });
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
     throw new Error(error.message || "Market feed failed");
@@ -368,11 +370,12 @@ async function refreshOnce() {
 function startStream() {
   stopStream();
   const symbol = document.getElementById("symbolSelect").value;
+  const timeframe = document.getElementById("timeframeSelect").value;
   state.live = true;
   document.getElementById("liveBtn").classList.add("is-live");
   document.getElementById("liveBtn").textContent = "● Live";
   setFeedStatus("Connecting live stream...");
-  state.eventSource = new EventSource(`/api/gold/stream?symbol=${encodeURIComponent(symbol)}`);
+  state.eventSource = new EventSource(`/api/gold/stream?symbol=${encodeURIComponent(symbol)}&timeframe=${encodeURIComponent(timeframe)}`);
   state.eventSource.addEventListener("price", (event) => applyFeed(JSON.parse(event.data), "Stream update"));
   state.eventSource.addEventListener("error", () => setFeedStatus("Stream retrying..."));
 }
@@ -412,6 +415,7 @@ document.getElementById("refreshBtn").addEventListener("click", () => refreshOnc
 document.getElementById("diagramBtn").addEventListener("click", drawDiagram);
 document.getElementById("liveBtn").addEventListener("click", toggleLive);
 document.getElementById("symbolSelect").addEventListener("change", startStream);
+document.getElementById("timeframeSelect").addEventListener("change", startStream);
 window.addEventListener("resize", () => {
   drawChart();
   drawDiagram();

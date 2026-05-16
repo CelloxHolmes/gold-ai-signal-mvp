@@ -17,6 +17,7 @@ http://127.0.0.1:5177
 ## Features
 
 - Pulls 1-minute market candles from Yahoo Finance chart data.
+- Supports selectable timeframes: 1m, 5m, 15m, 30m, 1h, and 1D.
 - Streams updates to the browser with Server-Sent Events every 10 seconds.
 - Calculates EMA 20, EMA 50, RSI, volatility, signal confidence, entry, TP, and SL.
 - Draws candlestick chart and strategy diagram on canvas.

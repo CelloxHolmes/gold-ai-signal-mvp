@@ -7,7 +7,16 @@ const PORT = Number(process.env.PORT || 5177);
 const PUBLIC_DIR = path.join(__dirname, "public");
 const YAHOO_CHART_URL = "https://query1.finance.yahoo.com/v8/finance/chart";
 const DEFAULT_SYMBOL = "GC=F";
+const DEFAULT_TIMEFRAME = "1m";
 const INTERVAL_MS = 10000;
+const TIMEFRAMES = {
+  "1m": { interval: "1m", range: "1d", label: "1 Minute" },
+  "5m": { interval: "5m", range: "5d", label: "5 Minutes" },
+  "15m": { interval: "15m", range: "5d", label: "15 Minutes" },
+  "30m": { interval: "30m", range: "1mo", label: "30 Minutes" },
+  "1h": { interval: "60m", range: "3mo", label: "1 Hour" },
+  "1d": { interval: "1d", range: "1y", label: "1 Day" },
+};
 
 const mimeTypes = {
   ".html": "text/html; charset=utf-8",
@@ -30,8 +39,19 @@ function normalizeSymbol(rawSymbol) {
   return /^[A-Z0-9=.\-^]+$/.test(symbol) ? symbol : DEFAULT_SYMBOL;
 }
 
-async function fetchGoldCandles(symbol = DEFAULT_SYMBOL) {
-  const url = `${YAHOO_CHART_URL}/${encodeURIComponent(symbol)}?interval=1m&range=1d&includePrePost=false`;
+function normalizeTimeframe(rawTimeframe) {
+  const timeframe = String(rawTimeframe || DEFAULT_TIMEFRAME).trim();
+  return TIMEFRAMES[timeframe] ? timeframe : DEFAULT_TIMEFRAME;
+}
+
+async function fetchGoldCandles(symbol = DEFAULT_SYMBOL, timeframe = DEFAULT_TIMEFRAME) {
+  const timeframeConfig = TIMEFRAMES[normalizeTimeframe(timeframe)];
+  const params = new URLSearchParams({
+    interval: timeframeConfig.interval,
+    range: timeframeConfig.range,
+    includePrePost: "false",
+  });
+  const url = `${YAHOO_CHART_URL}/${encodeURIComponent(symbol)}?${params.toString()}`;
   const response = await fetch(url, {
     headers: {
       "user-agent": "gold-ai-signal-mvp/0.2",
@@ -77,6 +97,10 @@ async function fetchGoldCandles(symbol = DEFAULT_SYMBOL) {
     currency: result.meta?.currency || "USD",
     regularMarketPrice: result.meta?.regularMarketPrice || candles[candles.length - 1].close,
     marketState: result.meta?.marketState || "UNKNOWN",
+    timeframe,
+    timeframeLabel: timeframeConfig.label,
+    interval: timeframeConfig.interval,
+    range: timeframeConfig.range,
     fetchedAt: new Date().toISOString(),
     candles,
   };
@@ -113,9 +137,10 @@ function serveStatic(req, res) {
 async function handleApi(req, res) {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const symbol = normalizeSymbol(url.searchParams.get("symbol"));
+  const timeframe = normalizeTimeframe(url.searchParams.get("timeframe"));
 
   try {
-    sendJson(res, 200, await fetchGoldCandles(symbol));
+    sendJson(res, 200, await fetchGoldCandles(symbol, timeframe));
   } catch (error) {
     sendJson(res, 502, {
       error: "MARKET_DATA_UNAVAILABLE",
@@ -128,6 +153,7 @@ async function handleApi(req, res) {
 function handleStream(req, res) {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const symbol = normalizeSymbol(url.searchParams.get("symbol"));
+  const timeframe = normalizeTimeframe(url.searchParams.get("timeframe"));
   let closed = false;
 
   res.writeHead(200, {
@@ -140,7 +166,7 @@ function handleStream(req, res) {
   const send = async () => {
     if (closed) return;
     try {
-      const payload = await fetchGoldCandles(symbol);
+      const payload = await fetchGoldCandles(symbol, timeframe);
       res.write(`event: price\n`);
       res.write(`data: ${JSON.stringify(payload)}\n\n`);
     } catch (error) {
